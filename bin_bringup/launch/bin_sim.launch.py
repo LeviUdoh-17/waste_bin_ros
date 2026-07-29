@@ -98,7 +98,7 @@ def generate_launch_description():
             "joint_state_broadcaster", 
             "--param-file", 
             os.path.join(get_package_share_directory('bin_bringup'), 
-                        'config', 'bin_controllers.yaml')
+                        'config', 'bin_controllers_sim.yaml')
         ],
         parameters=[{'use_sim_time': True}]
     )

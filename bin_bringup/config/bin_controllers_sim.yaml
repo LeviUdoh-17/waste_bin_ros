@@ -1,7 +1,7 @@
 controller_manager:
   ros__parameters:
     update_rate: 50  # Hz
-    use_sim_time: False
+    use_sim_time: True
 
     diff_drive_controller:
       type: diff_drive_controller/DiffDriveController
@@ -29,7 +29,7 @@ diff_drive_controller:
     publish_rate: 50.0
     odom_frame_id: odom
     base_frame_id: base_footprint
-    enable_odom_tf: true
+    enable_odom_tf: false
     pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
     twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
     open_loop: false
@@ -38,13 +38,13 @@ diff_drive_controller:
     linear:
       x:
         has_velocity_limits: true
-        max_velocity: 0.2
-        min_velocity: -0.2
+        max_velocity: 1.0
+        min_velocity: -1.0
     angular:
       z:
         has_velocity_limits: true
-        max_velocity: 0.5
-        min_velocity: -0.5
+        max_velocity: 2.0
+        min_velocity: -2.0
 
 bin_cover_controller:
   ros__parameters:
