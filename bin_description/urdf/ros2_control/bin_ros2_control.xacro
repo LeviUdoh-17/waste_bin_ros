@@ -57,14 +57,14 @@
                 <state_interface name="linear_acceleration.z"/>
             </sensor> -->
 
-            <joint name="${prefix}bin_cover_joint">
+            <!-- <joint name="${prefix}bin_cover_joint">
                 <command_interface name="position">
                     <param name="min">${-pi/2}</param>
                     <param name="max">0</param>
                 </command_interface>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
-            </joint>
+            </joint> -->
         </ros2_control>
     </xacro:macro>
 </robot>

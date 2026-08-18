@@ -38,13 +38,13 @@
             </inertial>
 
         </link>
-        <joint name="${prefix}bin_cover_joint" type="revolute">
+        <joint name="${prefix}bin_cover_joint" type="fixed">
             <parent link="${prefix}bin_top_link"/>
             <child link="${prefix}bin_cover_link"/>
             <origin xyz="${-cover_length/2} 0 ${bin_height}" rpy="0 0 0"/>
          
-            <axis xyz="0 1 0"/>
-            <limit lower="${-pi/2}" upper="0" effort="100" velocity="1.0"/>
+            <!-- <axis xyz="0 1 0"/>
+            <limit lower="${-pi/2}" upper="0" effort="100" velocity="1.0"/> -->
         </joint>
     </xacro:macro>
 </robot>

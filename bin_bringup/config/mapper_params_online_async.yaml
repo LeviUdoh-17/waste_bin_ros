@@ -13,16 +13,16 @@ slam_toolbox:
     odom_frame: odom
     map_frame: map
     base_frame: base_footprint
-    scan_topic: /lidar
+    scan_topic: /scan
     use_map_saver: true
-    mode:  mapping 
+    mode:  localization # mapping 
 
     # if you'd like to immediately start continuing a map at a given pose
     # or at the dock, but they are mutually exclusive, if pose is given
     # will use pose
-    # map_file_name: /home/chibueze/Documents/Projects/Paid/Waste_bin/bin_ws/office_map_serial
+    map_file_name: /home/leviudoh/Documents/waste_bin_ros/test_map_1_serial
     map_start_pose: [0.0, 0.0, 0.0]
-    # map_start_at_dock: true
+    map_start_at_dock: true
 
     qos_overrides:
       /lidar:

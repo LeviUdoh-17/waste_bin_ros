@@ -73,6 +73,15 @@ def generate_launch_description():
         ]
     )
 
+    # ── Camera ────────────────────────────────────────────────────────────
+    camera_node = Node(
+        package='v4l2_camera',
+        executable='v4l2_camera_node',
+        name='v4l2_camera',
+        output='screen',
+        parameters=[{'image_size': [640, 480]}]
+    )
+
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -80,6 +89,24 @@ def generate_launch_description():
         arguments=['-d', rviz_config_file],
         parameters=[{'use_sim_time': False}]
     )
+
+    #____LiDAR________________________________________________
+    ldlidar_node = Node( 
+        package='ldlidar_stl_ros2', 
+        executable='ldlidar_stl_ros2_node', 
+        name='ldlidar_node', 
+        output='screen', 
+        parameters=[{ 
+            'product_name':           'LDLiDAR_LD19',
+            'topic_name':             'scan',
+            'frame_id':               'lidar_link',
+            'port_name':              '/dev/ttyUSB1',
+            'port_baudrate':          230400,
+            'laser_scan_dir':         True,
+            'enable_angle_crop_func': False,
+            'angle_crop_min':         0.0,
+            'angle_crop_max':         0.0
+        }] ) 
 
 
 
@@ -89,5 +116,7 @@ def generate_launch_description():
         joint_state_broadcaster_spawner,
         diff_drive_controller_spawner,
         twist_stamper, 
-        rviz_node
+        ldlidar_node,
+        # camera_node,
+        # rviz_node
     ])

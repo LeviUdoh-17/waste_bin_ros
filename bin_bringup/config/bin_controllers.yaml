@@ -46,10 +46,10 @@ diff_drive_controller:
         max_velocity: 0.5
         min_velocity: -0.5
 
-bin_cover_controller:
-  ros__parameters:
-    joints: 
-      - bin_cover_joint
+# bin_cover_controller:
+#   ros__parameters:
+#     joints: 
+#       - bin_cover_joint
 
 imu_sensor_broadcaster:
   ros__parameters:
