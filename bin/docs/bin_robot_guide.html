@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bin Robot — Operating Manual</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm 16mm; }
+
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font: 10.5pt/1.5 "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #1a1a1a; background: #fff; margin: 0;
+  }
+  code, pre, .mono { font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; }
+
+  /* ---- title page ---- */
+  .cover { text-align: left; padding-top: 55mm; page-break-after: always; }
+  .cover h1 { font-size: 30pt; margin: 0 0 4mm; letter-spacing: -0.5px; }
+  .cover .sub { font-size: 13pt; color: #555; margin: 0 0 18mm; }
+  .cover .meta { font-size: 9.5pt; color: #666; border-top: 2px solid #1a1a1a; padding-top: 4mm; }
+  .cover .meta b { color: #1a1a1a; }
+
+  /* ---- headings ---- */
+  h2 {
+    font-size: 15pt; margin: 0 0 4mm; padding-bottom: 2mm;
+    border-bottom: 2px solid #1a1a1a; page-break-before: always; page-break-after: avoid;
+  }
+  h2:first-of-type { page-break-before: avoid; }
+  h3 { font-size: 11.5pt; margin: 6mm 0 2mm; page-break-after: avoid; }
+  h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; color: #333; page-break-after: avoid; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1mm; }
+
+  /* ---- code ---- */
+  pre {
+    background: #f4f4f2; border-left: 3px solid #999; padding: 2.5mm 3mm;
+    font-size: 8.7pt; line-height: 1.45; overflow-x: auto; margin: 0 0 3mm;
+    page-break-inside: avoid; white-space: pre-wrap; word-wrap: break-word;
+  }
+  pre .c { color: #6a7a6a; }
+  code { background: #f0f0ee; padding: 0.3mm 1mm; border-radius: 2px; font-size: 9pt; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  /* ---- tables ---- */
+  table {
+    width: 100%; border-collapse: collapse; margin: 0 0 4mm;
+    font-size: 9pt; page-break-inside: avoid;
+  }
+  th, td { border: 1px solid #ccc; padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #ebebe8; font-weight: 600; }
+  td.mono, th.mono { font-family: "DejaVu Sans Mono", monospace; font-size: 8.3pt; white-space: nowrap; }
+  tbody tr:nth-child(even) { background: #fafaf8; }
+
+  /* ---- callouts ---- */
+  .note, .warn {
+    padding: 2.5mm 3mm; margin: 0 0 3.5mm; font-size: 9.5pt;
+    page-break-inside: avoid; border-left: 3px solid;
+  }
+  .note { background: #eef3f8; border-color: #4a7ba7; }
+  .warn { background: #fdf2e9; border-color: #c8792a; }
+  .note b, .warn b { display: block; margin-bottom: 1mm; }
+
+  .two-col { display: flex; gap: 6mm; page-break-inside: avoid; }
+  .two-col > div { flex: 1; }
+
+  .machine {
+    display: inline-block; font-size: 8pt; font-weight: 700; padding: 0.6mm 2mm;
+    border-radius: 2px; vertical-align: 2px; letter-spacing: 0.4px;
+  }
+  .robot  { background: #d8ecd8; color: #24521f; }
+  .laptop { background: #dde5f2; color: #21406e; }
+
+  .toc { font-size: 10pt; }
+  .toc ol { padding-left: 6mm; }
+  .toc li { margin-bottom: 1.2mm; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Bin Robot</h1>
+  <p class="sub">Operating manual — mapping, navigation and waypoint routes</p>
+  <div class="meta">
+    <p><b>Workspace</b> &nbsp; bin_ws &nbsp;·&nbsp; ROS 2 Jazzy &nbsp;·&nbsp; Ubuntu, CycloneDDS</p>
+    <p><b>Packages</b> &nbsp; bin_bringup · bin_description · bin_hardware · bin_behavior · bin_perception</p>
+    <p><b>Firmware</b> &nbsp; ROSArduinoBridge_BTS7960 (Arduino Nano, ATmega328P)</p>
+  </div>
+</div>
+
+<h2>1 &nbsp; What runs where</h2>
+
+<p>The system spans two machines. Getting this wrong is the single most common source of
+confusion, because <b>each machine has its own checkout of the workspace</b>.</p>
+
+<table>
+  <tr><th style="width:20%">Machine</th><th style="width:34%">Runs</th><th>Responsible for</th></tr>
+  <tr>
+    <td><span class="machine robot">ROBOT</span><br>reached over ssh</td>
+    <td class="mono">bin_real.launch.py</td>
+    <td>Motors and encoders over <code>/dev/bin_motors</code>, LD19 laser over
+        <code>/dev/bin_lidar</code>, robot_state_publisher, ros2_control, the scan gate.</td>
+  </tr>
+  <tr>
+    <td><span class="machine laptop">LAPTOP</span></td>
+    <td class="mono">laptop_slam_nav2.launch.py<br>laptop_nav_waypoints.launch.py</td>
+    <td>SLAM or AMCL localisation, Nav2, RViz, the waypoint tools.</td>
+  </tr>
+</table>
+
+<div class="warn">
+  <b>Edits do not cross the network</b>
+  Changing a file on the laptop does nothing to the robot until you sync the workspace and
+  run <code>colcon build --symlink-install</code> <i>on the robot</i>. If a fix appears to
+  have no effect, check the robot's copy of the file before assuming the change was wrong.
+</div>
+
+<h3>Topic flow</h3>
+<pre><span class="c"># command path</span>
+Nav2 controller → cmd_vel_nav → velocity_smoother → cmd_vel_smoothed
+               → collision_monitor → /cmd_vel → twist_stamper
+               → /diff_drive_controller/cmd_vel → wheels
+
+<span class="c"># sensing path</span>
+LD19   → /lidar_raw → scan_gate → /lidar → slam_toolbox / AMCL / costmaps
+camera → /camera/rgb/image_raw{,/compressed} + /camera/rgb/camera_info
+                                          → color_detector / yolo_detector
+encoders → ros2_control → /joint_states + /diff_drive_controller/odom
+                        → odom → base_footprint (TF)</pre>
+
+<h2>2 &nbsp; Hardware reference</h2>
+
+<h3>Arduino Nano pin map</h3>
+<p>Every PWM pin on the Nano is spoken for. This table is why the lid servo is bit-banged
+rather than driven by <code>&lt;Servo.h&gt;</code> — see section 10.</p>
+
+<table>
+  <tr><th class="mono" style="width:12%">Pin</th><th style="width:34%">Function</th><th style="width:18%">Timer</th><th>Notes</th></tr>
+  <tr><td class="mono">D2</td><td>Left encoder A</td><td>—</td><td>PCINT2 / PORTD</td></tr>
+  <tr><td class="mono">D3</td><td>Left encoder B</td><td>Timer2</td><td>PWM unused — digital input</td></tr>
+  <tr><td class="mono">D5</td><td>Left motor LPWM</td><td>Timer0</td><td rowspan="2">Timer0 also drives millis()</td></tr>
+  <tr><td class="mono">D6</td><td>Right motor LPWM</td><td>Timer0</td></tr>
+  <tr><td class="mono">D9</td><td>Left motor RPWM</td><td>Timer1</td><td rowspan="2">Why Servo.h is unusable here</td></tr>
+  <tr><td class="mono">D10</td><td>Right motor RPWM</td><td>Timer1</td></tr>
+  <tr><td class="mono">D11</td><td>Lid servo</td><td>Timer2</td><td>Bit-banged, no timer used</td></tr>
+  <tr><td class="mono">A4 / A5</td><td>Right encoder A / B</td><td>—</td><td>PCINT1 / PORTC</td></tr>
+</table>
+
+<h3>Key constants</h3>
+<table>
+  <tr><th style="width:34%">Parameter</th><th class="mono" style="width:22%">Value</th><th>Where</th></tr>
+  <tr><td>Motor board serial</td><td class="mono">/dev/bin_motors @ 57600</td><td>bin_real.launch.py <span class="mono">motor_port</span></td></tr>
+  <tr><td>Laser serial</td><td class="mono">/dev/bin_lidar @ 230400</td><td>bin_real.launch.py <span class="mono">lidar_port</span></td></tr>
+  <tr><td>Lid hold-open window</td><td class="mono">1500 ms</td><td>servo_driver.h</td></tr>
+  <tr><td>Camera</td><td class="mono">CSI, 640x480</td><td>camera_ros via libcamera</td></tr>
+  <tr><td>Controller update rate</td><td class="mono">20 Hz</td><td>bin_controllers.yaml</td></tr>
+  <tr><td>Serial read timeout</td><td class="mono">50 ms</td><td>bin_ros2_control.xacro</td></tr>
+  <tr><td>Encoder counts / rev</td><td class="mono">2475</td><td>bin_ros2_control.xacro</td></tr>
+  <tr><td>Wheel radius</td><td class="mono">0.031755 m</td><td>bin_controllers.yaml</td></tr>
+  <tr><td>Wheel separation</td><td class="mono">0.2484 m</td><td>bin_controllers.yaml</td></tr>
+  <tr><td>Robot radius (costmap)</td><td class="mono">0.15 m</td><td>nav2_params.yaml</td></tr>
+  <tr><td>Max speed (linear / angular)</td><td class="mono">0.15 m/s / 0.6 rad/s</td><td>nav2_params.yaml</td></tr>
+</table>
+
+<h2>3 &nbsp; One-time setup</h2>
+
+<h3>Both machines</h3>
+<pre><span class="c"># Pick any number, but it must match on both machines. Without this every ROS 2</span>
+<span class="c"># process on the WiFi discovers every other one, and other robots on the LAN reuse</span>
+<span class="c"># the same map/odom/base_footprint frame names.</span>
+echo 'export ROS_DOMAIN_ID=17' &gt;&gt; ~/.bashrc
+echo 'export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp' &gt;&gt; ~/.bashrc
+source ~/.bashrc</pre>
+
+<h3>Build</h3>
+<pre>cd ~/bin_ws
+colcon build --symlink-install
+source install/setup.bash</pre>
+
+<p><code>--symlink-install</code> matters: it makes config and Python files live, so editing
+a yaml or a node takes effect on the next run without rebuilding. C++ changes
+(<code>bin_hardware</code>) and new launch files still need a rebuild.</p>
+
+<h3>Sync to the robot</h3>
+<pre>rsync -av --delete ~/bin_ws/src/ &lt;user&gt;@&lt;robot&gt;.local:~/bin_ws/src/
+ssh &lt;user&gt;@&lt;robot&gt;.local
+cd ~/bin_ws &amp;&amp; colcon build --symlink-install &amp;&amp; source install/setup.bash</pre>
+
+<h3>Camera (camera_ros)</h3>
+
+<p>The CSI camera is driven by <code>camera_ros</code>, built from source in
+<code>src/camera_ros</code> rather than installed from apt. The released
+<code>ros-jazzy-camera-ros</code> depends on <code>ros-jazzy-libcamera</code>, ROS's own
+vendored build, which generally lacks the <code>rpi/vc4</code> pipeline handler and so
+never enumerates a Pi camera. Building here links the system libcamera instead.</p>
+
+<p>Check libcamera can see the sensor before anything else — if it cannot, neither can
+ROS and the problem is below ROS:</p>
+<pre>rpicam-hello --list-cameras      <span class="c"># or: cam -l</span></pre>
+
+<p>If it is missing, check <code>camera_auto_detect=1</code> and the right
+<code>dtoverlay</code> in <code>/boot/firmware/config.txt</code>, then reboot.</p>
+
+<pre><span class="c">--- ROBOT ---</span>
+cd ~/bin_ws
+rosdep install -y --from-paths src --ignore-src --rosdistro jazzy --skip-keys=libcamera
+colcon build --symlink-install --packages-select camera_ros</pre>
+
+<p><code>--skip-keys=libcamera</code> is what stops rosdep pulling the ROS-vendored
+libcamera back in over the system one.</p>
+
+<div class="warn">
+  <b>The laptop needs libcamera-dev, or camera_ros skipped</b>
+  <code>camera_ros</code> lives in <code>src/</code>, so a plain <code>colcon build</code>
+  on the laptop tries to build it and fails with
+  <span class="mono">libcamera&gt;=0.1 not found</span>. Either
+  <code>sudo apt install libcamera-dev</code> once (0.2.0 satisfies it, and everything
+  then just builds), or pass
+  <code>--packages-ignore camera_ros</code> on the laptop. Do <b>not</b> drop a
+  <code>COLCON_IGNORE</code> in <code>src/camera_ros</code> — rsync carries it to the
+  robot and skips the package exactly where it is needed.
+</div>
+
+<h3>Stable device names <span style="font-weight:400;color:#666">— required</span></h3>
+
+<p><code>/dev/ttyUSB0</code> and <code>/dev/ttyUSB1</code> are handed out in enumeration
+order. If the Arduino resets and re-enumerates, the two devices swap and the motor driver
+starts speaking its protocol at the laser. Give them fixed names once:</p>
+
+<pre><span class="c">--- ROBOT, both devices plugged in ---</span>
+cd ~/bin_ws/src/bin/bin_bringup/udev
+./setup_udev.sh                 <span class="c"># inspect devices, print suggested rules</span></pre>
+
+<p>The script prints a rule per device with the symlink name left as
+<code>bin_CHANGEME</code>. Work out which is which — with the ROS stack stopped, the motor
+board is the one that answers the encoder query:</p>
+
+<pre>printf 'e\r' &gt; /dev/ttyUSB0 ; timeout 1 cat /dev/ttyUSB0
+<span class="c"># two integers back = that is the Arduino; the other is the LD19</span></pre>
+
+<p>Then edit the names to <code>bin_motors</code> and <code>bin_lidar</code>, save the block
+to <code>/etc/udev/rules.d/99-bin-robot.rules</code>, and reload:</p>
+
+<pre>sudo udevadm control --reload-rules &amp;&amp; sudo udevadm trigger
+ls -l /dev/bin_motors /dev/bin_lidar</pre>
+
+<div class="note">
+  <b>CH340 chips have no serial number</b>
+  If both adapters are CH340s they are indistinguishable by ID, so the script falls back
+  to matching the physical USB port. That works, but the devices must then stay in the
+  same hub sockets.
+</div>
+
+<p>To run without the rules, pass the raw ports:</p>
+<pre>ros2 launch bin_bringup bin_real.launch.py \
+     motor_port:=/dev/ttyUSB0 lidar_port:=/dev/ttyUSB1</pre>
+
+<h3>Firmware</h3>
+<p>Flash <code>ROSArduinoBridge_BTS7960.ino</code> to the Nano from the Arduino IDE. Before
+flashing, confirm <code>DEBUG_PID_SERIAL</code> is commented out in
+<code>diff_controller.h</code> — it prints onto the same serial port ROS reads, and its
+lines land in the middle of encoder replies.</p>
+
+<h2>4 &nbsp; Building a map</h2>
+
+<p>Do this once per site, then reuse the saved map for every navigation run.</p>
+
+<pre><span class="c">--- ROBOT ---</span>
+ros2 launch bin_bringup bin_real.launch.py
+
+<span class="c">--- LAPTOP ---</span>
+ros2 launch bin_bringup laptop_slam_nav2.launch.py
+ros2 run teleop_twist_keyboard teleop_twist_keyboard</pre>
+
+<p>Drive the whole area. Good practice:</p>
+<ul>
+  <li>Move slowly — the laser is 10 Hz and fast turns smear the scan match.</li>
+  <li>Prefer long straight runs along walls; revisit the start point to close the loop.</li>
+  <li><b>Keep the lid closed the entire time.</b> The laser is mounted on it (section 10).</li>
+  <li>Watch RViz: if the map tears or jumps, stop, back up and re-approach slowly.</li>
+</ul>
+
+<div class="note">
+  <b>Capture waypoints on the same drive</b>
+  slam_toolbox publishes <code>map → odom</code> while mapping, so the capture tool in
+  section 7 works during this run. Recording bins and the dock as you map saves a
+  second lap.
+</div>
+
+<h3>Saving the map</h3>
+<pre><span class="c">--- LAPTOP, with the mapping run still going ---</span>
+ros2 run nav2_map_server map_saver_cli -f bin_floor
+
+cp bin_floor.yaml bin_floor.pgm ~/bin_ws/src/bin/bin_bringup/maps/
+cd ~/bin_ws &amp;&amp; colcon build --symlink-install --packages-select bin_bringup</pre>
+
+<p><code>bin_floor</code> is the name the navigation launch file expects by default. Use a
+different one with <code>map:=/full/path/to/other.yaml</code>.</p>
+
+<h2>5 &nbsp; Navigating a saved map</h2>
+
+<pre><span class="c">--- ROBOT ---</span>
+ros2 launch bin_bringup bin_real.launch.py
+
+<span class="c">--- LAPTOP ---</span>
+ros2 launch bin_bringup laptop_nav_waypoints.launch.py
+<span class="c"># or with a different map:</span>
+ros2 launch bin_bringup laptop_nav_waypoints.launch.py map:=/path/to/other.yaml</pre>
+
+<h3>Seeding the position</h3>
+<p>AMCL starts believing the robot is at the map origin
+(<code>set_initial_pose: true</code> in <code>nav2_params.yaml</code>). If the robot starts
+anywhere else, correct it: in RViz click <b>2D Pose Estimate</b>, then click-and-drag on
+the robot's real position pointing the way it faces.</p>
+
+<p>Confirm it took:</p>
+<pre>ros2 topic echo /amcl_pose
+ros2 run tf2_ros tf2_echo map base_footprint</pre>
+
+<p>Drive a few metres. A healthy AMCL shows the covariance shrinking and the particle cloud
+in RViz tightening around the robot. A cloud that stays spread out, or snaps to a wrong
+place, means the initial pose was too far off — re-seed it.</p>
+
+<h2>6 &nbsp; Driving manually</h2>
+
+<pre>ros2 run teleop_twist_keyboard teleop_twist_keyboard</pre>
+
+<p>Publishes <code>/cmd_vel</code>, which <code>twist_stamper</code> converts and forwards to
+the controller. Works in every mode, including while Nav2 is running — useful for nudging
+the robot out of a corner, though Nav2 will fight you if it has an active goal.</p>
+
+<table>
+  <tr><th style="width:45%">Check</th><th>Expected</th></tr>
+  <tr><td class="mono">ros2 topic hz /diff_drive_controller/odom</td><td>~20 Hz</td></tr>
+  <tr><td class="mono">ros2 topic hz /lidar</td><td>~10 Hz, lid closed</td></tr>
+  <tr><td class="mono">ros2 topic echo /joint_states</td><td>wheel positions changing as you drive</td></tr>
+  <tr><td class="mono">ros2 run tf2_ros tf2_echo odom base_footprint</td><td>advances smoothly, never jumps backward</td></tr>
+</table>
+
+<h2>7 &nbsp; Recording waypoints</h2>
+
+<p>Waypoints are recorded by <b>driving the robot to each spot and capturing where it
+actually is</b>. That guarantees a reachable pose with a real heading, rather than a
+clicked point that might sit inside a wall's inflation zone.</p>
+
+<pre><span class="c">--- LAPTOP, with a mapping or navigation run already going ---</span>
+ros2 run bin_behavior waypoint_capture
+ros2 run teleop_twist_keyboard teleop_twist_keyboard</pre>
+
+<p>Then for each stop: drive there, point the robot the way you want it to end up, and</p>
+
+<pre><span class="c"># record this spot, and cycle the lid when the route reaches it</span>
+ros2 service call /waypoint_capture/capture std_srvs/srv/SetBool "{data: true}"
+
+<span class="c"># record a drive-through corner instead — no lid</span>
+ros2 service call /waypoint_capture/capture std_srvs/srv/SetBool "{data: false}"
+
+<span class="c"># mistakes</span>
+ros2 service call /waypoint_capture/undo  std_srvs/srv/Trigger
+ros2 service call /waypoint_capture/clear std_srvs/srv/Trigger</pre>
+
+<p>Each call replies with what it stored, so the terminal doubles as a log of the route:</p>
+<pre>success=True, message='waypoint 1: x=1.250 y=-0.750 yaw=1.571 open_lid=True'</pre>
+
+<p>The file is written after every call — there is no separate save step, and a crash never
+loses more than nothing. On a new site, call <code>clear</code> first to drop the shipped
+example route.</p>
+
+<div class="warn">
+  <b>"No map → base_footprint transform"</b>
+  The capture failed because nothing is localising. Start the SLAM or navigation launch
+  first, and if you are in navigation mode, give AMCL its initial pose in RViz.
+</div>
+
+<h2>8 &nbsp; waypoints.yaml</h2>
+
+<p>Lives at <code>bin_bringup/config/waypoints.yaml</code>. Written by the capture tool,
+and safe to hand-edit.</p>
+
+<pre>waypoints:
+- {x: 1.25, y: -0.75, yaw: 1.571, open_lid: true}
+- {x: 3.5,  y: 2.0,   yaw: -0.785, open_lid: false}
+loop: true
+lid_dwell: 4.5</pre>
+
+<table>
+  <tr><th class="mono" style="width:18%">Key</th><th style="width:14%">Type</th><th>Meaning</th></tr>
+  <tr><td class="mono">x, y</td><td>metres</td><td>Position in the <code>map</code> frame.</td></tr>
+  <tr><td class="mono">yaw</td><td>radians</td><td>Heading, counter-clockwise from +x. 0 faces map +x, 1.571 faces +y.</td></tr>
+  <tr><td class="mono">open_lid</td><td>bool</td><td>Stop here and cycle the lid. Omit for a drive-through point.</td></tr>
+  <tr><td class="mono">loop</td><td>bool</td><td>Repeat the route until the runner is stopped.</td></tr>
+  <tr><td class="mono">lid_dwell</td><td>seconds</td><td>How long the lid stays open at each stop.</td></tr>
+</table>
+
+<h2>9 &nbsp; Running a route</h2>
+
+<h3>From the file</h3>
+<pre>ros2 run bin_behavior waypoint_runner
+<span class="c"># or start it with the navigation stack:</span>
+ros2 launch bin_bringup laptop_nav_waypoints.launch.py run_waypoints:=true</pre>
+
+<p>The runner hands the route to Nav2's <code>waypoint_follower</code>, splitting it into
+segments at each <code>open_lid</code> stop. At those stops it opens the lid, waits
+<code>lid_dwell</code> seconds, closes it, waits for the laser to come back, and continues.
+It aborts the whole route if a segment fails, so a robot that cannot reach a bin stops
+rather than silently skipping it.</p>
+
+<h3>Ad-hoc, from RViz</h3>
+<p>For a one-off run with no file: in the Nav2 panel switch to <b>Waypoint / Nav Through
+Poses</b> mode, place goals with the <b>Nav2 Goal</b> tool, then press <b>Start
+Navigation</b>. Nothing is saved, and the lid is not cycled.</p>
+
+<h2>10 &nbsp; The lid and the laser</h2>
+
+<p>The LD19 is bolted to the lid, not the body. In the model that is
+<code>bin_top_link</code> → <code>bin_cover_link</code> (the revolute
+<code>bin_cover_joint</code>) → <code>lidar_link</code>. Opening the lid pitches the
+scanner by up to 90°, so it sweeps a vertical plane — floor and ceiling — instead of the
+room.</p>
+
+<p>Left unhandled that would corrupt the map, mark phantom obstacles in the costmaps and
+raytrace-clear real ones. So <code>scan_gate</code> sits between the driver and everything
+else: the LD19 publishes <code>/lidar_raw</code>, and <code>/lidar</code> only carries
+scans taken while the lid was down and settled.</p>
+
+<p>You will see this in the log, and it is normal:</p>
+<pre>[scan_gate]: lid not closed — blocking scans
+[scan_gate]: lid closed and settled — passing scans</pre>
+
+<table>
+  <tr><th style="width:34%">Condition</th><th>Behaviour</th></tr>
+  <tr><td>Lid closed, settled 0.5 s</td><td>Scans pass.</td></tr>
+  <tr><td>Lid commanded open</td><td>Scans stop immediately, before the servo has moved.</td></tr>
+  <tr><td>Lid closing</td><td>Scans stay blocked for 0.5 s after it reports closed, covering the servo's ~300 ms sweep.</td></tr>
+  <tr><td><code>/joint_states</code> stops</td><td>Fails closed — no scans. A silent controller is treated as unknown lid state.</td></tr>
+</table>
+
+<h3>Why the lid does not stay held open</h3>
+
+<p>A bit-banged servo only holds position while it is being pulsed, and a servo holding
+against the lid's weight draws current the whole time — far more if it is pressed against
+a mechanical end stop. On a Nano powered over USB that sag is enough to brown out the
+board, which then resets and re-enumerates on a different <code>/dev/ttyUSB</code> node,
+killing the serial link mid-run.</p>
+
+<p>So the firmware energises the servo for the ~300 ms sweep plus
+<code>SERVO_HOLD_OPEN_MS</code> (1500 ms), then stops pulsing and lets it relax. If the lid
+falls sooner than you want, the fix is electrical, not a longer window: give the servo its
+own 5&nbsp;V supply with a common ground and a 470–1000&nbsp;µF capacitor across it near
+the servo, then set <code>SERVO_HOLD_OPEN_MS</code> to 0 to hold indefinitely.</p>
+
+<div class="warn">
+  <b>Only open the lid while stopped</b>
+  With the laser gated the robot has no obstacle sensor. Nav2's collision_monitor latches a
+  stop once its 1 s source timeout expires, which is the safety net, not the plan.
+  <code>behavior_manager</code> and <code>waypoint_runner</code> both stop before opening.
+</div>
+
+<h2>10b &nbsp; Camera</h2>
+
+<p>Starts with <code>bin_real.launch.py</code> by default. Turn it off when you need the
+Pi's CPU or the WiFi for something else:</p>
+<pre>ros2 launch bin_bringup bin_real.launch.py camera:=false</pre>
+
+<table>
+  <tr><th style="width:42%">Topic</th><th>Type</th></tr>
+  <tr><td class="mono">/camera/rgb/image_raw</td><td>sensor_msgs/Image</td></tr>
+  <tr><td class="mono">/camera/rgb/image_raw/compressed</td><td>sensor_msgs/CompressedImage</td></tr>
+  <tr><td class="mono">/camera/rgb/camera_info</td><td>sensor_msgs/CameraInfo</td></tr>
+</table>
+
+<p>These are the same names the sim's gz bridge publishes, and the frame is
+<code>camera_depth_frame</code> — the optical frame, matching the sim's
+<code>gz_frame_id</code>. So <code>color_detector</code> and <code>yolo_detector</code>
+run unchanged against either.</p>
+
+<div class="warn">
+  <b>Never subscribe to the raw image across WiFi</b>
+  640&times;480 RGB at 30 fps is about 27&nbsp;MB/s. It will swamp the link and starve
+  the laser and TF traffic, which shows up as navigation falling apart rather than as an
+  obvious camera problem. On the laptop always use
+  <code>/camera/rgb/image_raw/compressed</code>. <code>jpeg_quality</code> is set to 75;
+  the <code>FrameDurationLimits</code> parameter caps the frame rate if you need more.
+</div>
+
+<h2>11 &nbsp; Serial protocol</h2>
+
+<p>The Nano speaks a single-letter line protocol at 57600 baud, terminated by carriage
+return. Useful for bench-testing motors and the lid with no ROS running — close the ROS
+stack first, as only one process can hold <code>/dev/ttyUSB0</code>.</p>
+
+<pre>screen /dev/ttyUSB0 57600     <span class="c"># or the Arduino IDE serial monitor, line ending = CR</span></pre>
+
+<table>
+  <tr><th class="mono" style="width:16%">Cmd</th><th style="width:26%">Arguments</th><th>Does</th></tr>
+  <tr><td class="mono">e</td><td>—</td><td>Read encoders. Replies <code>&lt;left&gt; &lt;right&gt;</code>.</td></tr>
+  <tr><td class="mono">m</td><td>left right</td><td>Set speed in encoder counts per PID frame (closed loop).</td></tr>
+  <tr><td class="mono">o</td><td>left right</td><td>Raw PWM, −255…255, bypasses the PID.</td></tr>
+  <tr><td class="mono">r</td><td>—</td><td>Reset encoder counts to zero.</td></tr>
+  <tr><td class="mono">s</td><td>1 or 0</td><td>Lid open / closed.</td></tr>
+  <tr><td class="mono">q</td><td>—</td><td>Diagnostics: encoders, target and actual RPM, error, integral, PWM, velocities.</td></tr>
+  <tr><td class="mono">u</td><td>lKp:lKd:lKi:lKo rKp:rKd:rKi:rKo</td><td>Set both PIDs.</td></tr>
+  <tr><td class="mono">l</td><td>Kp:Ki:Kd:MinPwm</td><td>Left PID only. Note the different argument order.</td></tr>
+  <tr><td class="mono">f</td><td>Kp:Ki:Kd:MinPwm</td><td>Right PID only.</td></tr>
+  <tr><td class="mono">b</td><td>—</td><td>Report baud rate.</td></tr>
+  <tr><td class="mono">p</td><td>pin</td><td>Ping sensor read.</td></tr>
+</table>
+
+<h4>Bench test that catches most problems</h4>
+<pre>e            <span class="c"># note the numbers</span>
+o 120 120    <span class="c"># both wheels forward</span>
+e            <span class="c"># both counts must have increased</span>
+o 0 0
+s 1          <span class="c"># lid opens, replies OK immediately</span>
+s 0</pre>
+<p>If <code>s 1</code> takes a noticeable moment to reply, you are running old firmware —
+the lid used to block for 300 ms and stall everything else with it.</p>
+
+<h2>12 &nbsp; Troubleshooting</h2>
+
+<table>
+  <tr><th style="width:27%">Symptom</th><th style="width:33%">Cause</th><th>Fix</th></tr>
+  <tr>
+    <td>Robot model jumps between two poses, one lagging ("the ghost")</td>
+    <td>Encoder replies being dropped or corrupted, so the wheel position momentarily reads zero and odometry teleports.</td>
+    <td>Confirm <code>DEBUG_PID_SERIAL</code> is commented out in <code>diff_controller.h</code> and reflash. Watch for <code>encoder read failed</code> warnings.</td>
+  </tr>
+  <tr>
+    <td><code>encoder read failed; holding last position</code> repeating</td>
+    <td>The 57600 link is dropping replies.</td>
+    <td>Occasional is harmless. Constant means a bad USB cable, or <code>update_rate</code> raised too high for the baud rate.</td>
+  </tr>
+  <tr>
+    <td>Model at the origin, RViz shows TF errors</td>
+    <td>No <code>odom → base_footprint</code>.</td>
+    <td><code>enable_odom_tf</code> must be <code>true</code> in <code>bin_controllers.yaml</code>. Check <code>tf2_echo odom base_footprint</code>.</td>
+  </tr>
+  <tr>
+    <td>Nothing appears with Fixed Frame <code>map</code></td>
+    <td>No <code>map → odom</code>: SLAM or AMCL is not running or has no laser.</td>
+    <td>Check <code>ros2 topic hz /lidar</code>. If <code>/lidar_raw</code> flows but <code>/lidar</code> does not, the lid is open — see section 10.</td>
+  </tr>
+  <tr>
+    <td>controller_manager aborts: <i>Joint 'bin_cover_joint' is of type 'fixed'</i></td>
+    <td>The robot's <code>bin_description</code> is out of sync with the laptop's.</td>
+    <td>Re-sync the whole <code>src/</code> tree and rebuild on the robot. Never copy individual files.</td>
+  </tr>
+  <tr>
+    <td>Controllers never activate; spawners retry forever</td>
+    <td>ros2_control_node died at startup — look above the retries for the real error.</td>
+    <td>Usually a URDF mismatch or <code>/dev/ttyUSB0</code> busy or absent.</td>
+  </tr>
+  <tr>
+    <td>Everything runs but nothing moves</td>
+    <td>Nav2 running on simulated time with no clock.</td>
+    <td><code>use_sim_time</code> must be <code>False</code> throughout <code>nav2_params.yaml</code>. Verify with <code>ros2 param get /controller_server use_sim_time</code>.</td>
+  </tr>
+  <tr>
+    <td>Robot drifts off the map, particle cloud spread wide</td>
+    <td>AMCL lost, or seeded badly.</td>
+    <td>Re-seed with 2D Pose Estimate. If it keeps happening the map is poor — re-map more slowly.</td>
+  </tr>
+  <tr>
+    <td>Serial dies after a lid command; device reappears as a different ttyUSB number</td>
+    <td>Servo current browning out the Nano, which resets and re-enumerates.</td>
+    <td>Shorten <code>SERVO_HOLD_OPEN_MS</code>, or better, move the servo to its own 5&nbsp;V supply. Install the udev rules so a reset cannot swap the ports.</td>
+  </tr>
+  <tr>
+    <td><i>device reports readiness to read but returned no data</i></td>
+    <td>The port vanished underneath an open connection — same re-enumeration, or two processes on one port.</td>
+    <td>Check <code>dmesg | tail</code> for USB disconnect lines. Confirm the ROS stack is not already holding the port.</td>
+  </tr>
+  <tr>
+    <td>No camera topics; camera_ros logs no cameras found</td>
+    <td>libcamera cannot see the sensor, or it was built against the ROS-vendored libcamera.</td>
+    <td>Run <code>rpicam-hello --list-cameras</code> first. If that works but ROS does not, rebuild with <code>--skip-keys=libcamera</code>.</td>
+  </tr>
+  <tr>
+    <td>colcon build fails: <span class="mono">libcamera&gt;=0.1 not found</span></td>
+    <td>Building camera_ros on a machine without libcamera headers — normally the laptop.</td>
+    <td><code>sudo apt install libcamera-dev</code>, or build with <code>--packages-ignore camera_ros</code>.</td>
+  </tr>
+  <tr>
+    <td>Navigation degrades once the camera is on</td>
+    <td>Raw image saturating the WiFi and starving laser and TF traffic.</td>
+    <td>Subscribe to the compressed topic only, or run with <code>camera:=false</code>.</td>
+  </tr>
+  <tr>
+    <td>Laptop sees no topics from the robot</td>
+    <td>Mismatched <code>ROS_DOMAIN_ID</code>, or different WiFi.</td>
+    <td><code>echo $ROS_DOMAIN_ID</code> on both. Both must be identical and on the same subnet.</td>
+  </tr>
+  <tr>
+    <td>Route skips a bin, or stops early</td>
+    <td>A segment failed; the runner aborts rather than continuing.</td>
+    <td>Read the runner's log for which waypoint. Usually unreachable — recapture it slightly further from the wall.</td>
+  </tr>
+</table>
+
+<h2>13 &nbsp; Cheat sheet</h2>
+
+<div class="two-col">
+<div>
+<h4><span class="machine robot">ROBOT</span></h4>
+<pre>ssh &lt;user&gt;@&lt;robot&gt;.local
+cd ~/bin_ws &amp;&amp; source install/setup.bash
+
+<span class="c"># always the first thing to start</span>
+ros2 launch bin_bringup bin_real.launch.py
+
+<span class="c"># after any code or config change</span>
+colcon build --symlink-install</pre>
+
+<h4>Map building</h4>
+<pre>ros2 launch bin_bringup \
+  laptop_slam_nav2.launch.py
+
+ros2 run nav2_map_server \
+  map_saver_cli -f bin_floor</pre>
+</div>
+
+<div>
+<h4><span class="machine laptop">LAPTOP</span></h4>
+<pre>cd ~/bin_ws &amp;&amp; source install/setup.bash
+
+<span class="c"># navigation on the saved map</span>
+ros2 launch bin_bringup \
+  laptop_nav_waypoints.launch.py
+
+<span class="c"># drive by hand</span>
+ros2 run teleop_twist_keyboard \
+  teleop_twist_keyboard</pre>
+
+<h4>Waypoints</h4>
+<pre>ros2 run bin_behavior waypoint_capture
+ros2 service call \
+  /waypoint_capture/capture \
+  std_srvs/srv/SetBool "{data: true}"
+
+ros2 run bin_behavior waypoint_runner</pre>
+</div>
+</div>
+
+<h4>Health checks</h4>
+<pre>ros2 topic hz /lidar                          <span class="c"># ~10 Hz, lid closed</span>
+ros2 topic hz /diff_drive_controller/odom     <span class="c"># ~20 Hz</span>
+ros2 run tf2_ros tf2_echo odom base_footprint <span class="c"># smooth, no backward jumps</span>
+ros2 run tf2_ros tf2_echo map odom            <span class="c"># exists once SLAM/AMCL is up</span>
+ros2 topic echo /amcl_pose                    <span class="c"># covariance shrinking</span>
+ros2 node list                                <span class="c"># one of each, no duplicates</span></pre>
+
+</body>
+</html>

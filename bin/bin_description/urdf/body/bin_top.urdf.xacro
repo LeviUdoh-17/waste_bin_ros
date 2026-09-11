@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:property name="plastic_density"    value="1050.0" />
+    <xacro:property name="bin_wall_thickness" value="0.004"  />
+    <xacro:property name="bin_length" value="0.20" />
+    <xacro:property name="bin_width" value="0.20" />
+    <xacro:property name="bin_height" value="0.24" />
+    <!-- <xacro:property name="bin_mass" value="${plastic_density * bin_wall_thickness * (bin_length*bin_width + 2*bin_width*bin_height + 2*bin_length*bin_height)}" /> -->
+
+    <xacro:property name="bin_mass" value="0.1" />
+
+
+    
+
+    <xacro:macro name="bin_top" params="prefix height">
+
+        <link name="${prefix}bin_top_link">
+            <visual>
+                <geometry>
+                    <mesh filename="package://bin_description/meshes/Bin.stl" scale="0.8 0.8 0.8"/>
+                    <!-- <box size="${bin_length} ${bin_width} ${bin_height}"/> -->
+                </geometry>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <!-- <origin xyz="0 0 ${bin_height/2}" rpy="0 0 0"/> -->
+                <material name="white">
+                    <color rgba="1 1 1 1"/>
+                </material>
+            </visual>
+            <collision>
+                <geometry>
+                    <!-- <mesh filename="package://bin_description/meshes/Bin.stl" scale="1 1 1"/> -->
+                    <box size="${bin_length} ${bin_width} ${bin_height}"/>
+                </geometry>
+                <origin xyz="0 0 ${bin_height/2}" rpy="0 0 0"/>
+            </collision>
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="${bin_mass}"/>
+                <inertia ixx="${(1/12) * bin_mass * ((bin_width * bin_width) + (bin_height * bin_height))}"  ixy="0.0"  ixz="0.0"  
+                        iyy="${(1/12) * bin_mass * ((bin_length * bin_length) + (bin_height * bin_height))}"  iyz="0.0" 
+                        izz="${(1/12) * bin_mass * ((bin_length * bin_length) + (bin_width * bin_width))}"/>
+            </inertial>
+
+        </link>
+        <joint name="${prefix}base_top_joint" type="fixed">
+            <parent link="${prefix}base_link"/>
+            <child link="${prefix}bin_top_link"/>
+            <origin xyz="0 0 ${height}" rpy="0 0 0"/>
+        </joint>
+    </xacro:macro>
+</robot>

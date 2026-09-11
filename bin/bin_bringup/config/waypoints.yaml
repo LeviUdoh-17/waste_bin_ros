@@ -1,0 +1,27 @@
+# Waypoints for bin_behavior/waypoint_runner, in the map frame.
+#
+# These are PLACEHOLDER coordinates — replace them with real ones. Drive the robot to
+# each spot and record where it actually is:
+#
+#   ros2 run bin_behavior waypoint_capture
+#   ros2 service call /waypoint_capture/clear   std_srvs/srv/Trigger   # drop these
+#   ros2 service call /waypoint_capture/capture std_srvs/srv/SetBool "{data: true}"
+#
+# Don't capture from RViz's "2D Goal Pose" tool: it publishes to goal_pose, which Nav2's
+# bt_navigator consumes, so the robot would drive to each point as you clicked it.
+#
+# yaw is radians, CCW from +x.
+#
+# open_lid: pause at that waypoint and cycle the lid (needs bin_cover_controller,
+# which bin_real.launch.py now spawns). Omit or set false to just drive through.
+
+waypoints:
+  - {x: 1.0, y: 0.5, yaw: 0.0,  open_lid: true}
+  - {x: 2.5, y: 0.5, yaw: 1.57, open_lid: true}
+  - {x: 2.5, y: 2.0, yaw: 3.14, open_lid: false}
+
+# Repeat the route until the node is stopped.
+loop: false
+
+# Seconds to hold the lid open at a waypoint with open_lid: true.
+lid_dwell: 3.0

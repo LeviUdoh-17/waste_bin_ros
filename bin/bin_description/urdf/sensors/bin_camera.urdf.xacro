@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:property name="plastic_density" value="1050.0" />
+    <xacro:property name="camera_length" value="0.025" />
+    <xacro:property name="camera_width" value="0.028062" />
+    <xacro:property name="camera_height" value="0.011346" />
+    <xacro:property name="camera_mass" value="${plastic_density * camera_length * camera_width * camera_height}" />
+
+    <xacro:macro name="bin_camera" params="prefix">
+
+        <link name="${prefix}bin_camera_link">
+            <visual>
+                <geometry>
+                    <!-- <mesh filename="package://bin_description/meshes/camera.stl" scale="1 1 1"/> -->
+                    <box size="${camera_length} ${camera_width} ${camera_height}"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="${pi/2} 0 ${pi/2}"/>
+                <material name="black">
+                    <color rgba="0 0 0 1"/>
+                </material>
+            </visual>
+            <collision>
+                <geometry>
+                    <!-- <mesh filename="package://bin_description/meshes/camera.stl" scale="1 1 1"/> -->
+                    <box size="${camera_length} ${camera_width} ${camera_height}"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="${pi/2} 0 ${pi/2}"/>
+            </collision>
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="${camera_mass}"/>
+                <inertia ixx="${(1/12) * camera_mass * ((camera_width * camera_width) + (camera_height * camera_height))}"  ixy="0.0"  ixz="0.0"  
+                        iyy="${(1/12) * camera_mass * ((camera_length * camera_length) + (camera_height * camera_height))}"  iyz="0.0" 
+                        izz="${(1/12) * camera_mass * ((camera_length * camera_length) + (camera_width * camera_width))}"/>
+            </inertial>
+
+        </link>
+        <joint name="${prefix}bin_top_camera_joint" type="fixed">
+            <parent link="${prefix}bin_top_link"/>
+            <child link="${prefix}bin_camera_link"/>
+            <origin xyz="${bin_length/2 + camera_length/2} 0 ${bin_height/2}" rpy="0 0 0"/>
+        </joint>
+
+        <!-- Optical frame for the RGB stream. bin_camera_link follows REP-103 body
+             convention (x forward, y left, z up); image data is expressed in REP-105
+             optical convention (z forward along the view axis, x right, y down).
+             The rpy below is that fixed -90/0/-90 rotation and nothing else — do not
+             change it to "fix" an image that looks rotated in RViz.
+
+             Both camera_ros (frame_id parameter, bin_bringup launch) and the Gazebo
+             sensor (gz_frame_id) must name this frame exactly. Rename in one place
+             and the sim/real parity breaks silently: TF resolves, projections don't. -->
+        <link name="${prefix}camera_rgb_optical_frame"/>
+        <joint name="${prefix}camera_rgb_optical_joint" type="fixed">
+            <parent link="${prefix}bin_camera_link"/>
+            <child link="${prefix}camera_rgb_optical_frame"/>
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+        </joint>
+    </xacro:macro>
+</robot>

@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="bin_bot">
+
+    <xacro:property name="M_PI" value="3.1415926535897931" />
+    <xacro:property name="wheel_radius" value="0.031755" />
+
+    <xacro:arg name="robot_name" default="bin_robot"/>
+    <xacro:arg name="prefix" default=""/>
+    <xacro:arg name="use_gazebo" default="true"/>
+    <xacro:arg name="motor_port" default="/dev/ttyUSB0"/>
+
+
+
+
+
+    <xacro:include filename="$(find bin_description)/urdf/body/bin_base.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/body/bin_wheels.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/body/bin_top.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/body/bin_cover.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/sensors/bin_camera.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/sensors/bin_lidar.urdf.xacro"/>
+
+
+    <xacro:include filename="$(find bin_description)/urdf/ros2_control/bin_ros2_control.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/gazebo/bin_gazebo.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/sensors/bin_imu.urdf.xacro"/>
+
+
+
+    <!-- <xacro:include filename="$(find bin_description)/urdf/sensors/lidar.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/body/bin_wheel.urdf.xacro"/>
+    <xacro:include filename="$(find bin_description)/urdf/body/bin_castor.urdf.xacro"/> -->
+    <!-- <xacro:include filename="$(find bin_description)/urdf/gazebo/gazebo_control.xacro"/>  -->
+    <!-- <xacro:include filename="$(find bin_description)/urdf/gazebo/bin.gazebo.xacro"/> -->
+    <!-- <xacro:include filename="$(find bin_description)/urdf/ros2_control/bin_ros2_control.xacro"/> -->
+
+    <!-- <xacro:include filename="$(find bin_description)/urdf/sensors/rgbd_camera.urdf.xacro"/>
+   
+    <xacro:include filename="$(find bin_description)/urdf/sensors/imu.urdf.xacro"/> -->
+
+
+    <xacro:bin_ros2_control prefix="$(arg prefix)" use_gazebo="$(arg use_gazebo)" device="$(arg motor_port)" />
+    <xacro:bin_gazebo prefix="$(arg prefix)" />
+
+
+
+    <xacro:bin_base
+    prefix="$(arg prefix)"
+    z_off="${wheel_radius}"/>  <!--wheel_radius + motor z-offset (0.01) to land wheels on ground-->
+
+
+    <xacro:bin_wheels
+      prefix="$(arg prefix)"/>
+
+    <xacro:bin_top
+      prefix="$(arg prefix)"
+      height="${base_height}" />
+
+    <xacro:bin_cover
+      prefix="$(arg prefix)" />
+
+    <xacro:bin_lidar
+      prefix="$(arg prefix)" />
+
+    <xacro:bin_camera
+      prefix="$(arg prefix)" />
+
+    <xacro:bin_imu 
+    prefix="$(arg prefix)" />
+
+    <!-- <xacro:bin_motors 
+      prefix="$(arg prefix)"/> 
+
+ -->
+    <!-- <xacro:back_bin_stud
+      prefix="$(arg prefix)"
+      side="back_left"
+      x_reflect="-1"
+      y_reflect="1"/> 
+
+
+    <xacro:back_bin_stud
+      prefix="$(arg prefix)"
+      side="back_right"
+      x_reflect="-1"
+      y_reflect="-1"/> 
+
+    
+    <xacro:front_bin_stud
+      prefix="$(arg prefix)"
+      side="front_left"
+      x_reflect="1"
+      y_reflect="1"/> 
+
+    <xacro:front_bin_stud
+      prefix="$(arg prefix)"
+      side="front_right"
+      x_reflect="1"
+      y_reflect="-1"/>  -->
+
+
+    <!-- <xacro:lidar_sensor
+    prefix="$(arg prefix)" 
+    z_off="${lidar_height}"/>
+
+
+    <xacro:bin_wheel
+      prefix="$(arg prefix)"
+      side="left"
+      x_reflect="-1"
+      y_reflect="1"/>
+
+    <xacro:bin_wheel
+      prefix="$(arg prefix)"
+      side="right"
+      x_reflect="-1"
+      y_reflect="-1"/>
+
+    <xacro:bin_castor
+      prefix="$(arg prefix)"/>
+     -->
+
+    
+    <!-- <xacro:mecanum_wheel
+      prefix="$(arg prefix)"
+      side="front_right"
+      x_reflect="1"
+      y_reflect="-1"/>
+
+
+
+    <xacro:mecanum_wheel
+      prefix="$(arg prefix)"
+      side="back_right"
+      x_reflect="-1"
+      y_reflect="-1"/>
+
+    <xacro:rgbd_camera
+      prefix="$(arg prefix)"
+      camera_name="cam_1"
+      xyz_offset="0.105 0 0.03"
+      rpy_offset="0 0 0"/>
+
+
+
+    <xacro:imu_sensor
+      prefix="$(arg prefix)"
+      parent="base_link"
+      frame_id="imu"
+      xyz_offset="0 0 0.006"
+      rpy_offset="0 0 0"
+      update_rate="15.0"
+      topic_name="imu/data"/> -->
+    <!--
+    <xacro:include filename="$(find mec_mobile_description)/urdf/control/velocity_control_plugin.urdf.xacro" />
+    <xacro:load_velocity_control_plugin use_gazebo="$(arg use_gazebo)"/>
+
+    <xacro:include filename="$(find mec_mobile_description)/urdf/control/gazebo_sim_ros2_control.urdf.xacro" />
+    <xacro:load_gazebo_sim_ros2_control_plugin
+      robot_name="$(arg robot_name)"
+      use_gazebo="$(arg use_gazebo)"/>
+
+    <xacro:include filename="$(find mec_mobile_description)/urdf/control/robot_3d_ros2_control.urdf.xacro" />
+    <xacro:mec_mobile_ros2_control
+      prefix="$(arg prefix)"
+      use_gazebo="$(arg use_gazebo)"/>
+    -->
+    
+</robot>

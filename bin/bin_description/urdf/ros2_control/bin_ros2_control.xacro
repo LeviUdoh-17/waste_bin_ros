@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="bin_ros2_control" params="prefix use_gazebo device:=/dev/ttyUSB0">
+        <ros2_control name="BinSystem" type="system">
+            <hardware>
+                <xacro:if value="${use_gazebo}">
+                    <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+                </xacro:if>
+                <xacro:unless value="${use_gazebo}">
+                    <plugin>bin_hardware/DiffDriveBinHardware</plugin>
+                    <param name="left_wheel_name">${prefix}base_left_wheel_joint</param>
+                    <param name="right_wheel_name">${prefix}base_right_wheel_joint</param>
+                    <param name="loop_rate">20</param>
+                    <param name="device">/dev/ttyUSB0</param>
+                    <param name="baud_rate">57600</param>
+                    <!-- Must stay well under the controller_manager cycle budget: this
+                         read blocks the realtime update thread. -->
+                    <param name="timeout_ms">50</param>
+                    <param name="enc_counts_per_rev">2475</param>
+                    <param name="pid_p_left">10</param>
+                    <param name="pid_d_left">0</param>
+                    <param name="pid_i_left">0</param>
+                    <param name="pid_o_left">50</param>
+                    <param name="pid_p_right">10</param>
+                    <param name="pid_d_right">0</param>
+                    <param name="pid_i_right">0</param>
+                    <param name="pid_o_right">50</param>
+                    <param name="diag_publish_rate">3</param>
+                    <param name="cover_joint_name">${prefix}bin_cover_joint</param>
+                    <param name="cover_closed_rad">0.0</param>
+                    <param name="cover_open_rad">${-pi/2}</param>
+                </xacro:unless>
+            </hardware>
+
+            <xacro:macro name="wheel_interfaces" params="name">
+                <joint name="${name}">
+                    <command_interface name="velocity">
+                        <param name="min">-10.0</param>
+                        <param name="max">10.0</param>
+                    </command_interface>
+                    <state_interface name="position"/>
+                    <state_interface name="velocity"/>
+                </joint>
+            </xacro:macro>
+
+            <xacro:wheel_interfaces name="${prefix}base_right_wheel_joint"/>
+            <xacro:wheel_interfaces name="${prefix}base_left_wheel_joint"/>
+
+            <!-- <sensor name="${prefix}imu_sensor">
+                <state_interface name="orientation.x"/>
+                <state_interface name="orientation.y"/>
+                <state_interface name="orientation.z"/>
+                <state_interface name="orientation.w"/>
+                <state_interface name="angular_velocity.x"/>
+                <state_interface name="angular_velocity.y"/>
+                <state_interface name="angular_velocity.z"/>
+                <state_interface name="linear_acceleration.x"/>
+                <state_interface name="linear_acceleration.y"/>
+                <state_interface name="linear_acceleration.z"/>
+            </sensor> -->
+
+            <joint name="${prefix}bin_cover_joint">
+                <command_interface name="position">
+                    <param name="min">${-pi/2}</param>
+                    <param name="max">0</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+        </ros2_control>
+    </xacro:macro>
+</robot>

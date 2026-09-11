@@ -1,0 +1,9 @@
+<library path="bin_hardware">
+  <class name="bin_hardware/DiffDriveBinHardware"
+         type="bin_hardware::DiffDriveBinHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Diff drive + lid servo hardware interface for the waste-bin robot
+    </description>
+  </class>
+</library>

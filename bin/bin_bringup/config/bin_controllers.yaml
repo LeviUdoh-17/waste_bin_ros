@@ -1,0 +1,61 @@
+controller_manager:
+  ros__parameters:
+    # Each cycle costs a serial round trip in read() and another in write(). At 57600
+    # baud 50 Hz saturates the link and replies get truncated; 20 Hz leaves headroom.
+    # Raise this only together with baud_rate (needs an Arduino firmware change too).
+    update_rate: 20  # Hz
+    use_sim_time: False
+
+    diff_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    bin_cover_controller:
+      type: position_controllers/JointGroupPositionController
+
+    imu_sensor_broadcaster:
+      type: imu_sensor_broadcaster/IMUSensorBroadcaster
+
+diff_drive_controller:
+  ros__parameters:
+    # Match the joint names exactly as defined in your ubot_wheel.urdf.xacro
+    left_wheel_names: ["base_left_wheel_joint"]
+    right_wheel_names: ["base_right_wheel_joint"]
+
+    # Geometric parameters (based on your URDF properties)
+    wheel_separation: 0.2484  # base_width (0.227) + wheel_width (0.0214)
+    wheel_radius: 0.031755    # wheel_radius
+
+    # Odometry settings
+    publish_rate: 20.0  # matches controller_manager update_rate
+    odom_frame_id: odom
+    base_frame_id: base_footprint
+    enable_odom_tf: true
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+    open_loop: false
+
+    # Constraints for smooth movement
+    linear:
+      x:
+        has_velocity_limits: true
+        max_velocity: 0.2
+        min_velocity: -0.2
+    angular:
+      z:
+        has_velocity_limits: true
+        max_velocity: 1.0
+        min_velocity: -1.0
+
+bin_cover_controller:
+  ros__parameters:
+    joints: 
+      - bin_cover_joint
+
+imu_sensor_broadcaster:
+  ros__parameters:
+    frame_id: imu_link
+    sensor_name: imu_sensor
+    

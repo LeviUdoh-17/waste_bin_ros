@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:property name="plastic_density" value="1050.0" />
+    <xacro:property name="lidar_radius" value="0.0175" />
+    <xacro:property name="lidar_height" value="0.042" />
+    <xacro:property name="lidar_mass" value="${plastic_density * pi * lidar_radius * lidar_radius * lidar_height}" />
+
+    <xacro:macro name="bin_lidar" params="prefix">
+
+        <link name="${prefix}lidar_link">
+            <visual>
+                <geometry>
+                    <cylinder radius="${lidar_radius}" length="${lidar_height}"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <material name="black">
+                    <color rgba="0 0 0 1"/>
+                </material>
+            </visual>
+            <collision>
+                <geometry>
+                    <cylinder radius="${lidar_radius}" length="${lidar_height}"/>
+                </geometry>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+            </collision>
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="${lidar_mass}"/>
+                <!-- Solid cylinder: Ixx=Iyy = m*(3r^2+h^2)/12, Izz = m*r^2/2 -->
+                <inertia
+                    ixx="${(lidar_mass / 12.0) * (3 * lidar_radius * lidar_radius + lidar_height * lidar_height)}"  ixy="0.0"  ixz="0.0"
+                    iyy="${(lidar_mass / 12.0) * (3 * lidar_radius * lidar_radius + lidar_height * lidar_height)}"  iyz="0.0"
+                    izz="${(lidar_mass / 2.0) * (lidar_radius * lidar_radius)}"/>
+            </inertial>
+        </link>
+
+        <joint name="${prefix}bin_cover_lidar_joint" type="fixed">
+            <parent link="${prefix}bin_cover_link"/>
+            <child link="${prefix}lidar_link"/>
+            <!-- Centred on top face of the cover panel -->
+            <origin xyz="0 0 ${lidar_height/2}" rpy="0 0 0"/>
+        </joint>
+
+    </xacro:macro>
+</robot>
